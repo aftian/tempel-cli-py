@@ -1,7 +1,15 @@
 #!/usr/bin/python
 
 import urllib, urllib2
+import requests
 import os, sys, getopt
+
+
+#import cookielib
+#class NoRedirection(urllib2.HTTPErrorProcessor):
+#
+#		def http_response(self, request, response):
+            #		      return response
 
 def versi():
     string = """tempel cli version 0.0.3"""
@@ -105,8 +113,49 @@ def main(argv):
       'content' : content
     }
     data = urllib.urlencode(values)
+   
+
+    # requests
+    print "==================================== requests"
+    result = requests.get('http://expressjs.com/api.html', allow_redirects=False);
+    print result.headers
+
+
+    # urllib2
+    print "==================================== urllib2"
     response = urllib2.urlopen(urllib2.Request(tempel,data))
+    print response.info()
     print 'URL     :', response.geturl()
+    
+    # urllib2 with redirecthandler
+    print "==================================== urllib2 with redirecthandler"
+    class SmartRedirectHandler(urllib2.HTTPRedirectHandler):
+        def http_error_302(self, req, fp, code, msg, headers):
+            print headers
+            result = urllib2.HTTPRedirectHandler.http_error_302(self, req, fp,
+                                                                     code, msg,
+                                                                     headers)
+            result.status = code
+            result.headers = headers
+            return result
+    
+    request = urllib2.Request(tempel, data)
+    opener = urllib2.build_opener(SmartRedirectHandler())
+    obj = opener.open(request)
+    print obj.headers
+    
+    # httplib2
+    import httplib2
+    print "==================================== httplib2"
+    h = httplib2.Http(disable_ssl_certificate_validation=True)
+    h.follow_all_redirects = False
+    h.follow_redirects = False
+    response, body = h.request('http://expressjs.com/api.html',method='GET', headers={'content-type': 'application/x-www-form-urlencoded'}, redirections=0)
+    #print body
+    print response
+
+
+
 
 if __name__ == "__main__":
    main(sys.argv[1:])
